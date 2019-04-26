@@ -304,7 +304,8 @@
          family/c
          string? ;; could be more specific, I guess.
          (cons/c string? family/c)
-         (cons/c (or/c 'bold 'italic 'superscript 'subscript
+         (cons/c (or/c 'bold (cons/c 'weight font-weight/c)
+                       'italic 'superscript 'subscript
                        'large-script
                        'combine 'no-combine 'caps
                        'outline 'aligned 'unaligned
@@ -1537,12 +1538,14 @@
              (send the-font-list find-or-create-font
                    size (car style) (cdr style) 'normal 'normal #f 'default #t 'unaligned)]
             [(and (pair? style)
-                  (memq (car style)
-                        '(superscript 
-                          subscript
-                          large-script
-                          bold italic
-                          aligned unaligned)))
+                  (or (memq (car style)
+                            '(superscript
+                              subscript
+                              large-script
+                              bold italic
+                              aligned unaligned))
+                      (and (pair? (car style))
+                           (eq? (caar style) 'weight))))
              (let ([font (loop (cdr style))]
                    [style (car style)])
                (cond
@@ -1551,6 +1554,13 @@
                               (send font get-point-size)
                               (send font get-style)
                               'bold
+                              (send font get-hinting))]
+                [(and (pair? style)
+                      (eq? (car style) 'weight))
+                 (extend-font font
+                              (send font get-point-size)
+                              (send font get-style)
+                              (cdr style)
                               (send font get-hinting))]
                 [(eq? style 'italic)
                  (extend-font font
